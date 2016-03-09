@@ -526,15 +526,20 @@ def get_ip_dict(ip):
                 })
 
 
+def nic_to_public_ips_instance(client, group, nics):
+    return [client.public_ip_addresses.get(group, public_ip_id.split('/')[-1])
+              for nic_obj in [client.network_interfaces.get(group, nic['dep'].resource_name) for nic in nics]
+              for public_ip_id in [ip_conf_instance.public_ip_address.id for ip_conf_instance in nic_obj.ip_configurations if ip_conf_instance.public_ip_address]]
+
+
 def get_instances(client, group, deployment):
     dep_tree = build_hierarchy(deployment.properties.dependencies)
     vms = get_dependencies(dep_tree, resource_type="Microsoft.Compute/virtualMachines")
 
-    vms_and_ips = [(vm, get_dependencies(vm['children'], "Microsoft.Network/publicIPAddresses")) for vm in vms]
-    vms_and_ips = [(vm['dep'], [client.public_ip_addresses.get(group,
-                                                               ip['dep'].resource_name) for ip in ip_list]) for vm, ip_list in vms_and_ips if len(ip_list) > 0]
+    vms_and_nics = [(vm, get_dependencies(vm['children'], "Microsoft.Network/networkInterfaces")) for vm in vms]
+    vms_and_ips = [(vm['dep'], nic_to_public_ips_instance(client, group, nics)) for vm, nics in vms_and_nics]
 
-    return [dict(vm_name=vm.resource_name, ips=[get_ip_dict(ip) for ip in ips]) for vm, ips in vms_and_ips]
+    return [dict(vm_name=vm.resource_name, ips=[get_ip_dict(ip) for ip in ips]) for vm, ips in vms_and_ips if len(ips) > 0]
 
 
 def main():
