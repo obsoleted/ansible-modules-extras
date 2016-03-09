@@ -520,7 +520,10 @@ def get_ip_dict(ip):
                 id=ip.id,
                 public_ip=ip.ip_address,
                 public_ip_allocation_method=str(ip.public_ip_allocation_method),
-                dns_settings=ip.dns_settings)
+                dns_settings={
+                    'domain_name_label':ip.dns_settings.domain_name_label,
+                    'fqdn':ip.dns_settings.fqdn
+                })
 
 
 def get_instances(client, group, deployment):
