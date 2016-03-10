@@ -560,6 +560,7 @@ def main():
         parameters_link=dict(default=None),
         location=dict(default="West US"),
         deployment_mode=dict(default='Complete', choices=['Complete', 'Incremental']),
+        deployment_name=dict(default="ansible-arm")
     )
 
     module = AnsibleModule(
@@ -593,7 +594,7 @@ def main():
     subscription_id = module.params.get('subscription_id')
     resource_client = ResourceManagementClient(ResourceManagementClientConfiguration(credentials, subscription_id))
     network_client = NetworkManagementClient(NetworkManagementClientConfiguration(credentials, subscription_id))
-    conn_info['deployment_name'] = 'ansible-arm'
+    conn_info['deployment_name'] = module.params.get('deployment_name')
 
     if module.params.get('state') == 'present':
         deployment = deploy_template(module, resource_client, conn_info)
