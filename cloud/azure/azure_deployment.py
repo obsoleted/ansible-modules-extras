@@ -521,7 +521,7 @@ def get_ip_dict(ip):
                 public_ip=ip.ip_address,
                 public_ip_allocation_method=str(ip.public_ip_allocation_method))
 
-    if not ip.dns_settings is None:
+    if ip.dns_settings:
         ip_dict['dns_settings'] = {
                     'domain_name_label':ip.dns_settings.domain_name_label,
                     'fqdn':ip.dns_settings.fqdn
