@@ -442,7 +442,7 @@ def deploy_template(module, client, conn_info):
     group_name = conn_info["resource_group_name"]
 
     deploy_parameter = DeploymentProperties()
-    deploy_parameter.mode = "Complete"
+    deploy_parameter.mode = module.params.get('deployment_mode')
 
     if module.params.get('parameters_link') is None:
         deploy_parameter.parameters = module.params.get('parameters')
@@ -558,7 +558,8 @@ def main():
         parameters=dict(default=None, type='dict'),
         template_link=dict(default=None),
         parameters_link=dict(default=None),
-        location=dict(default="West US")
+        location=dict(default="West US"),
+        deployment_mode=dict(default='Complete', choices=['Complete', 'Incremental']),
     )
 
     module = AnsibleModule(
@@ -628,6 +629,7 @@ def mock_ansible():
     class AnsibleModule:
         params = {
             "location": "westus",
+            "deployment_mode": "Complete",
             "template_link": "https://raw.githubusercontent.com/azure/azure-quickstart-templates/master/memcached-multi-vm-ubuntu/azuredeploy.json",
             "parameters_link" : None,
             "parameters": {"location": {"value": "West US"}, "newStorageAccountName": {"value": "azroadshowphpmemstor3"}, "domainName":{"value": "azroadshowossphpmemlmaz3"}, "adminUsername": {"value": "azureuser"}, "adminPassword":{"value": "P4ssword"}, "numberOfMemcachedInstances": {"value": 3}}
