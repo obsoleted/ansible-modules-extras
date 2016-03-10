@@ -551,7 +551,7 @@ def main():
     from ansible.module_utils.basic import AnsibleModule
     argument_spec = dict(
         azure_url=dict(default=AZURE_URL),
-        subscription_id=dict(required=True),
+        subscription_id=dict(),
         client_secret=dict(no_log=True),
         client_id=dict(),
         tenant_or_domain=dict(),
@@ -595,7 +595,7 @@ def main():
             'access_token':conn_info['security_token']
         }
     )
-    subscription_id = module.params.get('subscription_id')
+    subscription_id = conn_info['subscription_id']
     resource_client = ResourceManagementClient(ResourceManagementClientConfiguration(credentials, subscription_id))
     network_client = NetworkManagementClient(NetworkManagementClientConfiguration(credentials, subscription_id))
     conn_info['deployment_name'] = module.params.get('deployment_name')
