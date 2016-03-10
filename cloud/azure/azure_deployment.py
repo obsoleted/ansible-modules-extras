@@ -516,14 +516,18 @@ def build_hierarchy(dependencies, tree=None):
 
 
 def get_ip_dict(ip):
-    return dict(name=ip.name,
+    ip_dict = dict(name=ip.name,
                 id=ip.id,
                 public_ip=ip.ip_address,
-                public_ip_allocation_method=str(ip.public_ip_allocation_method),
-                dns_settings={
+                public_ip_allocation_method=str(ip.public_ip_allocation_method))
+
+    if not ip.dns_settings is None:
+        ip_dict['dns_settings'] = {
                     'domain_name_label':ip.dns_settings.domain_name_label,
                     'fqdn':ip.dns_settings.fqdn
-                })
+        }
+
+    return ip_dict
 
 
 def nic_to_public_ips_instance(client, group, nics):
