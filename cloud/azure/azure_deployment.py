@@ -464,7 +464,16 @@ def deploy_template(module, client, conn_info):
     try:
         client.resource_groups.create_or_update(group_name, params)
         result = client.deployments.create_or_update(group_name, deployment_name, deploy_parameter)
-        return result.result() # Blocking wait, return the Deployment object
+        deployment_result = result.result() # Blocking wait, return the Deployment object
+        if module.params.get('wait_for_deployment_completion'):
+            while not deployment_result.properties.provisioning_state in {'Canceled', 'Failed', 'Deleted', 'Succeeded'}:
+                deployment_result = client.deployments.get(group_name, deployment_name)
+                time.sleep(module.params.get('wait_for_deployment_polling_period'))
+
+        if deployment_result.properties.provisioning_state == 'Succeeded':
+            return deployment_result
+
+        module.fail_json(msg='Deployment failed. Deployment id: %s' % (deployment_result.id))
     except CloudError as e:
         module.fail_json(msg='Deploy create failed with status code: %s and message: "%s"' % (e.status_code, e.message))
 
@@ -564,7 +573,9 @@ def main():
         parameters_link=dict(default=None),
         location=dict(default="West US"),
         deployment_mode=dict(default='Complete', choices=['Complete', 'Incremental']),
-        deployment_name=dict(default="ansible-arm")
+        deployment_name=dict(default="ansible-arm"),
+        wait_for_deployment_completion=dict(default=True),
+        wait_for_deployment_polling_period=dict(default=30)
     )
 
     module = AnsibleModule(
