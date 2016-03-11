@@ -428,6 +428,36 @@ def build_deployment_body(module):
 
     return dict(properties=properties)
 
+def get_failed_nested_operations(client, resource_group, current_operations):
+    new_operations = []
+    for operation in current_operations:
+        if operation.properties.provisioning_state == 'Failed':
+            new_operations.append(operation)
+            if operation.properties.target_resource and 'Microsoft.Resources/deployments' in operation.properties.target_resource.id:
+                nested_deployment = operation.properties.target_resource.resource_name
+                nested_operations = client.deployment_operations.list(resource_group, nested_deployment)
+                new_nested_operations = get_failed_nested_operations(client, resource_group, nested_operations)
+                new_operations += new_nested_operations
+
+    return new_operations
+
+def get_failed_deployment_operations(module, client, resource_group, deployment_name):
+    operations = client.deployment_operations.list(resource_group, deployment_name)
+    return [
+        dict(
+            id=op.id,
+            operation_id=op.operation_id,
+            status_code=op.properties.status_code,
+            status_message=op.properties.status_message,
+            target_resource = dict(
+                id=op.properties.target_resource.id,
+                resource_name=op.properties.target_resource.resource_name,
+                resource_type=op.properties.target_resource.resource_type
+            ) if op.properties.target_resource else None,
+            provisioning_state=op.properties.provisioning_state,
+        )
+        for op in get_failed_nested_operations(client, resource_group, operations)
+    ]
 
 def deploy_template(module, client, conn_info):
     """
@@ -473,10 +503,10 @@ def deploy_template(module, client, conn_info):
         if deployment_result.properties.provisioning_state == 'Succeeded':
             return deployment_result
 
-        module.fail_json(msg='Deployment failed. Deployment id: %s' % (deployment_result.id))
+        failed_deployment_operations = get_failed_deployment_operations(module, client, group_name, deployment_name)
+        module.fail_json(msg='Deployment failed. Deployment id: %s' % (deployment_result.id), failed_deployment_operations=failed_deployment_operations)
     except CloudError as e:
         module.fail_json(msg='Deploy create failed with status code: %s and message: "%s"' % (e.status_code, e.message))
-
 
 def destroy_resource_group(module, client, conn_info):
     """
